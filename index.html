@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PropCalc — Simulateur de Challenge Prop Firm</title>
+  <meta name="description" content="Calculez la probabilité de valider un challenge prop firm en fonction de votre risque par trade.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+/* ── VARIABLES ── */
+:root {
+  --bg: #0a0c0e;
+  --surface: #111417;
+  --surface2: #181c20;
+  --border: #242a30;
+  --accent: #cdad93;
+  --accent-dim: rgba(205,173,147,0.12);
+  --accent-glow: rgba(205,173,147,0.25);
+  --text: #e8edf2;
+  --muted: #4e5a66;
+  --dim: #7a8a9a;
+  --red: #f04f6a;
+  --yellow: #f0c84a;
+  --r: 12px;
+}
+
+/* ── RESET ── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(205,173,147,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(205,173,147,.025) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none; z-index: 0;
+}
+
+/* ── LAYOUT ── */
+.wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 36px 24px 60px;
+  position: relative; z-index: 1;
+}
+
+/* ── HEADER ── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 36px;
+}
+.logo { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.5px; }
+.logo span { color: var(--accent); }
+.tagline {
+  font-size: 0.68rem;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+  text-align: right;
+  line-height: 1.5;
+}
+
+/* ── 2-COL GRID ── */
+.main-grid {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 960px) {
+  .main-grid { grid-template-columns: 1fr; }
+}
+
+.col { display: flex; flex-direction: column; gap: 16px; }
+
+/* ── PANEL ── */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+
+.panel-head {
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.panel-head h2 {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.panel-head .dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.panel-body { padding: 20px; }
+
+/* ── FORM ── */
+.field-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.field-group.full { grid-template-columns: 1fr; }
+
+.field { display: flex; flex-direction: column; gap: 5px; }
+
+.field > label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.field input[type="number"] {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: var(--text);
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 600;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+  width: 100%;
+}
+.field input[type="number"]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+/* ── SEGMENTED CONTROL ── */
+.seg {
+  display: flex;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.seg button {
+  flex: 1; padding: 9px 6px;
+  background: transparent; border: none;
+  color: var(--dim);
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.7rem; font-weight: 600;
+  cursor: pointer; transition: all .15s;
+  white-space: nowrap;
+}
+.seg button.on { background: var(--accent); color: #1c120a; }
+
+/* ── DIVIDER ── */
+.divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+/* ── RUN BUTTON ── */
+.btn-run {
+  width: 100%;
+  padding: 13px;
+  background: var(--accent);
+  border: none; border-radius: 8px;
+  color: #1c120a;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.82rem; font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: filter .15s, transform .15s;
+  position: relative; overflow: hidden;
+}
+.btn-run:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.btn-run:active { transform: none; }
+.btn-run::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent);
+  transform: translateX(-100%);
+  animation: shimmer 2.5s infinite;
+}
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+
+/* ── RISK PILLS ── */
+.pills-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+.pill {
+  padding: 5px 11px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--dim);
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.68rem; font-weight: 600;
+  cursor: pointer; transition: all .12s;
+}
+.pill:hover { border-color: var(--accent); color: var(--accent); }
+.pill.on { background: var(--accent); border-color: var(--accent); color: #1c120a; }
+
+.pills-label {
+  font-size: 0.58rem; font-weight: 700;
+  letter-spacing: 1.8px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 8px;
+}
+
+/* ── STAT CARDS ── */
+.stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.scard {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  transition: border-color .15s;
+}
+.scard:hover { border-color: var(--accent-glow); }
+
+.scard-val {
+  font-size: 1.9rem; font-weight: 700;
+  line-height: 1; margin-bottom: 5px;
+  color: var(--text);
+}
+.scard-val.a { color: var(--accent); }
+.scard-val.r { color: var(--red); }
+.scard-val.y { color: var(--yellow); }
+
+.scard-lbl { font-size: 0.6rem; color: var(--muted); line-height: 1.4; }
+.scard-sub { font-size: 0.57rem; color: var(--muted); margin-top: 3px; }
+
+/* ── BOTTOM BAR ── */
+.bottom-bar {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
+.bbar-item { display: flex; flex-direction: column; }
+.bbar-item.right { align-items: flex-end; }
+.bbar-val { font-size: 1rem; font-weight: 700; color: var(--dim); }
+.bbar-val.a { color: var(--accent); }
+.bbar-lbl { font-size: 0.57rem; color: var(--muted); margin-top: 2px; letter-spacing: .5px; text-transform: uppercase; }
+
+/* ── CHART PANELS ── */
+.chart-inner-head { padding: 18px 20px 4px; }
+.cih-title { font-size: 0.88rem; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+.cih-sub { font-size: 0.62rem; color: var(--muted); font-weight: 400; }
+.chart-wrap { padding: 4px 20px 20px; }
+canvas { display: block; width: 100% !important; }
+
+/* ── FULL-WIDTH TABLE ── */
+.table-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  margin-top: 20px;
+}
+
+table { width: 100%; border-collapse: collapse; }
+
+thead th {
+  padding: 11px 18px;
+  font-size: 0.58rem; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--muted); text-align: left;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+}
+
+tbody tr {
+  border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background .12s;
+}
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: rgba(205,173,147,.04); }
+tbody tr.hl { background: rgba(205,173,147,.07); }
+
+tbody td {
+  padding: 12px 18px;
+  font-size: 0.8rem; font-weight: 500;
+  color: var(--dim);
+}
+tbody td:first-child { font-weight: 700; color: var(--text); }
+
+.g { color: var(--accent); font-weight: 700; }
+.w { color: var(--yellow); font-weight: 700; }
+.b { color: var(--red); font-weight: 700; }
+
+/* ── PULSE DOT ── */
+.pdot {
+  display: inline-block;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); margin-right: 6px;
+  animation: pulse 1.6s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .4; transform: scale(1.4); }
+}
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">Prop<span>Calc</span></div>
+    <div class="tagline">
+      Trouvez votre risque optimal par trade<br>
+      Minimisez le coût &amp; le temps pour être financé
+    </div>
+  </header>
+
+  <div class="main-grid">
+
+    <!-- COLONNE GAUCHE -->
+    <div class="col">
+      <div class="panel">
+        <div class="panel-head"><div class="dot"></div><h2>Paramètres de Simulation</h2></div>
+        <div class="panel-body">
+
+          <div class="field-group">
+            <div class="field">
+              <label for="winRate">Taux de Réussite (%)</label>
+              <input type="number" id="winRate" value="40" min="1" max="99" step="1">
+            </div>
+            <div class="field">
+              <label for="rrRatio">Ratio R/R (1:X)</label>
+              <input type="number" id="rrRatio" value="2" min="0.1" max="20" step="0.1">
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="field-group full">
+            <div class="field">
+              <label>Type de Challenge</label>
+              <div class="seg">
+                <button class="on" data-phase="1">Phase Unique</button>
+                <button data-phase="2">Deux Phases</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <div class="field">
+              <label for="challengeFee">Frais ($)</label>
+              <input type="number" id="challengeFee" value="500" min="0" step="50">
+            </div>
+            <div class="field">
+              <label for="profitTarget">Objectif Profit (%)</label>
+              <input type="number" id="profitTarget" value="10" min="1" max="30" step="0.5">
+            </div>
+          </div>
+
+          <div class="field-group" id="phase2Row" style="display:none;">
+            <div class="field">
+              <label for="profitTarget2">Objectif Phase 2 (%)</label>
+              <input type="number" id="profitTarget2" value="5" min="1" max="20" step="0.5">
+            </div>
+          </div>
+
+          <div class="field-group">
+            <div class="field">
+              <label for="maxDD">Drawdown Max (%)</label>
+              <input type="number" id="maxDD" value="10" min="1" max="30" step="0.5">
+            </div>
+            <div class="field">
+              <label>Type Drawdown</label>
+              <div class="seg">
+                <button class="on" data-dd="initial">Initial</button>
+                <button data-dd="trailing">Glissant</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="field-group">
+            <div class="field">
+              <label for="accountSize">Taille du Compte ($)</label>
+              <input type="number" id="accountSize" value="100000" min="1000" step="1000">
+            </div>
+            <div class="field">
+              <label for="profitSplit">Partage Profits (%)</label>
+              <input type="number" id="profitSplit" value="80" min="1" max="100" step="1">
+            </div>
+          </div>
+
+          <button class="btn-run" id="btnRun">&#9654; Lancer la Simulation</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="chart-inner-head">
+          <div class="cih-title">Taux de Réussite vs Risque</div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chartPass" height="180"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- COLONNE DROITE -->
+    <div class="col">
+      <div class="panel">
+        <div class="panel-head"><div class="dot"></div><h2>Analyse des Résultats</h2></div>
+        <div class="panel-body">
+
+          <div class="pills-label">Risque par trade sélectionné</div>
+          <div class="pills-wrap" id="riskPills"></div>
+
+          <div class="stats-row">
+            <div class="scard">
+              <div class="scard-val a" id="statPassRate">—</div>
+              <div class="scard-lbl">Taux de Réussite</div>
+            </div>
+            <div class="scard">
+              <div class="scard-val" id="statAvgTrades">—</div>
+              <div class="scard-lbl">Trades Moyens pour Valider</div>
+            </div>
+            <div class="scard">
+              <div class="scard-val" id="statAttempts">—</div>
+              <div class="scard-lbl">Tentatives (90% de confiance)</div>
+              <div class="scard-sub" id="statAttemptsNote"></div>
+            </div>
+            <div class="scard">
+              <div class="scard-val a" id="statCost">—</div>
+              <div class="scard-lbl">Coût Estimé pour être Financé</div>
+              <div class="scard-sub" id="statCostNote"></div>
+            </div>
+          </div>
+
+          <div class="bottom-bar">
+            <div class="bbar-item">
+              <div class="bbar-val" id="statConsecFail">—</div>
+              <div class="bbar-lbl">Risque 5+ Échecs Consécutifs</div>
+            </div>
+            <div class="bbar-item right">
+              <div class="bbar-val a" id="statBreakeven">—</div>
+              <div class="bbar-lbl">Seuil de Rentabilité</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="chart-inner-head">
+          <div class="cih-title">Coût Estimé pour être Financé</div>
+          <div class="cih-sub">Budget recommandé sur la base des tentatives à 90% de confiance</div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chartCost" height="180"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TABLE PLEINE LARGEUR -->
+  <div class="table-panel">
+    <div class="panel-head">
+      <div class="dot"></div>
+      <h2>Comparaison Complète des Résultats</h2>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Risque %</th>
+          <th>Taux de Réussite</th>
+          <th>Trades Moyens</th>
+          <th>Tentatives (90%)</th>
+          <th>Coût Estimé</th>
+          <th>Risque 5+ Échecs</th>
+          <th>Seuil Rentabilité</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const RISKS = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5];
+
+// Générateur pseudo-aléatoire déterministe (mulberry32)
+// Mêmes paramètres = mêmes résultats, toujours
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function makeSeed(rPct, p) {
+  return Math.round((rPct * 10000 + p.wr * 7919 + p.rr * 6271 + p.pt * 5381 +
+    p.dd * 4219 + p.phase * 3121 + (p.trail ? 2017 : 0) + p.pt2 * 1901) * 100);
+}
+
+function sim(rPct, p, N = 50000) {
+  const r = rPct / 100;
+  const rand = mulberry32(makeSeed(rPct, p));
+  let pass = 0, totalTrades = 0;
+
+  for (let t = 0; t < N; t++) {
+    let eq = 1, pk = 1, tr = 0, ok1 = false;
+    for (let i = 0; i < 600; i++) {
+      eq += rand() < p.wr ? r * p.rr : -r;
+      if (p.trail && eq > pk) pk = eq;
+      tr++;
+      const floor = p.trail ? pk * (1 - p.dd) : 1 - p.dd;
+      if (eq <= floor) break;
+      if (eq >= 1 + p.pt) { ok1 = true; break; }
+    }
+    if (!ok1) continue;
+
+    if (p.phase === 2) {
+      let e2 = 1, p2 = 1, ok2 = false;
+      for (let i = 0; i < 600; i++) {
+        e2 += rand() < p.wr ? r * p.rr : -r;
+        if (p.trail && e2 > p2) p2 = e2;
+        tr++;
+        const floor = p.trail ? p2 * (1 - p.dd) : 1 - p.dd;
+        if (e2 <= floor) break;
+        if (e2 >= 1 + p.pt2) { ok2 = true; break; }
+      }
+      if (!ok2) continue;
+    }
+
+    pass++;
+    totalTrades += tr;
+  }
+
+  const pr  = pass / N;
+  const avg = pass > 0 ? Math.round(totalTrades / pass) : 0;
+  const att = pr > 0 && pr < 1 ? Math.ceil(Math.log(0.1) / Math.log(1 - pr)) : 1;
+  const fl = 1 - pr;
+  const n  = Math.max(att, 5);
+  const c5 = fl > 0 ? 1 - Math.pow(1 - Math.pow(fl, 5), Math.max(n - 4, 1)) : 0;
+
+  return { pr, avg, att, c5 };
+}
+
+function getParams() {
+  return {
+    wr:    +document.getElementById('winRate').value / 100,
+    rr:    +document.getElementById('rrRatio').value,
+    fee:   +document.getElementById('challengeFee').value,
+    pt:    +document.getElementById('profitTarget').value / 100,
+    pt2:   window.phaseMode === 2 ? +document.getElementById('profitTarget2').value / 100 : 0,
+    dd:    +document.getElementById('maxDD').value / 100,
+    acc:   +document.getElementById('accountSize').value,
+    ps:    +document.getElementById('profitSplit').value / 100,
+    phase: window.phaseMode,
+    trail: window.ddMode === 'trailing',
+  };
+}
+
+function runSimulation() {
+  const btn = document.getElementById('btnRun');
+  btn.textContent = '\u27F3 Simulation en cours\u2026';
+  btn.disabled = true;
+
+  setTimeout(() => {
+    const p = getParams();
+    window.results = [];
+
+    RISKS.forEach(rp => {
+      const s    = sim(rp, p);
+      const cost = s.att * p.fee;
+      const profit = p.acc * p.ps * p.pt;
+      window.results.push({
+        risk: rp, pr: s.pr, avg: s.avg, att: s.att,
+        cost, c5: s.c5, be: profit > 0 ? cost / profit : 0, fee: p.fee,
+      });
+    });
+
+    btn.textContent = '\u25B6 Lancer la Simulation';
+    btn.disabled = false;
+
+    drawCharts();
+    drawTable();
+    updateView();
+  }, 50);
+}
+
+let cPass = null;
+let cCost = null;
+
+function drawCharts() {
+  if (!window.Chart) { setTimeout(drawCharts, 200); return; }
+
+  const lbl = window.results.map(d => d.risk + '%');
+  const ac  = '#cdad93';
+  const aca = 'rgba(205,173,147,.15)';
+  const grd = 'rgba(255,255,255,0.05)';
+  const tck = '#4e5a66';
+  const fnt = { family: 'Poppins', size: 10, weight: '500' };
+
+  const baseOptions = {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1a2028', titleColor: '#e8edf2', bodyColor: '#cdad93',
+        borderColor: '#2a3340', borderWidth: 1, padding: 10, cornerRadius: 8,
+      },
+    },
+    scales: {
+      x: { ticks: { color: tck, font: fnt }, grid: { color: 'transparent' }, border: { color: 'rgba(255,255,255,0.06)' } },
+      y: { ticks: { color: tck, font: fnt }, grid: { color: grd, drawTicks: false }, border: { color: 'transparent', dash: [4, 4] } },
+    },
+  };
+
+  if (cPass) cPass.destroy();
+  cPass = new Chart(document.getElementById('chartPass'), {
+    type: 'line',
+    data: {
+      labels: lbl,
+      datasets: [{
+        data: window.results.map(d => +(d.pr * 100).toFixed(1)),
+        borderColor: ac, backgroundColor: aca, pointBackgroundColor: ac,
+        pointBorderColor: '#0a0c0e', pointBorderWidth: 2, pointRadius: 5,
+        pointHoverRadius: 7, tension: 0.4, fill: true, borderWidth: 2,
+      }],
+    },
+    options: { ...baseOptions, scales: { ...baseOptions.scales, y: { ...baseOptions.scales.y, min: 0, max: 100, ticks: { ...baseOptions.scales.y.ticks, callback: v => v + '%', stepSize: 25 } } } },
+  });
+
+  if (cCost) cCost.destroy();
+  cCost = new Chart(document.getElementById('chartCost'), {
+    type: 'bar',
+    data: {
+      labels: lbl,
+      datasets: [{
+        data: window.results.map(d => d.cost),
+        backgroundColor: window.results.map(d => d.risk === window.selRisk ? ac : 'rgba(205,173,147,.35)'),
+        borderColor: 'transparent', borderWidth: 0, borderRadius: 4, borderSkipped: false,
+      }],
+    },
+    options: { ...baseOptions, scales: { ...baseOptions.scales, y: { ...baseOptions.scales.y, ticks: { ...baseOptions.scales.y.ticks, callback: v => '$' + v } } } },
+  });
+}
+
+window.results  = [];
+window.selRisk  = 2;
+window.phaseMode = 1;
+window.ddMode   = 'initial';
+
+function fmt(n, d = 0) {
+  return n.toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+
+document.querySelectorAll('.seg button[data-phase]').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.seg button[data-phase]').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    window.phaseMode = +b.dataset.phase;
+    document.getElementById('phase2Row').style.display = window.phaseMode === 2 ? 'grid' : 'none';
+  });
+});
+
+document.querySelectorAll('.seg button[data-dd]').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.seg button[data-dd]').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    window.ddMode = b.dataset.dd;
+  });
+});
+
+document.getElementById('btnRun').addEventListener('click', runSimulation);
+
+function buildPills() {
+  const wrap = document.getElementById('riskPills');
+  wrap.innerHTML = '';
+  RISKS.forEach(r => {
+    const btn = document.createElement('button');
+    btn.className = 'pill' + (r === window.selRisk ? ' on' : '');
+    btn.textContent = r + '%';
+    btn.onclick = () => { window.selRisk = r; buildPills(); updateView(); };
+    wrap.appendChild(btn);
+  });
+}
+
+function updateView() {
+  const d = window.results.find(x => x.risk === window.selRisk);
+  if (!d) return;
+
+  document.getElementById('statPassRate').textContent    = fmt(d.pr * 100, 1) + '%';
+  document.getElementById('statAvgTrades').textContent   = d.avg || '\u2014';
+  document.getElementById('statAttempts').textContent    = d.att;
+  document.getElementById('statAttemptsNote').textContent = 'Pour 90% de chance de validation';
+  document.getElementById('statCost').textContent        = fmt(d.cost) + ' $';
+  document.getElementById('statCostNote').textContent    = '\u00C0 ' + fmt(d.fee) + ' $ / tentative';
+  document.getElementById('statConsecFail').textContent  = fmt(d.c5 * 100, 1) + '%';
+  document.getElementById('statBreakeven').textContent   = fmt(d.be * 100, 2) + '%';
+
+  const el = document.getElementById('statPassRate');
+  el.className = 'scard-val ' + (d.pr >= 0.7 ? 'a' : d.pr >= 0.5 ? 'y' : 'r');
+
+  document.querySelectorAll('#tableBody tr').forEach(tr => {
+    tr.classList.toggle('hl', +tr.dataset.r === window.selRisk);
+  });
+}
+
+function drawTable() {
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+
+  window.results.forEach(d => {
+    const tr = document.createElement('tr');
+    tr.dataset.r = d.risk;
+    tr.onclick = () => { window.selRisk = d.risk; buildPills(); updateView(); };
+
+    const pc = d.pr >= 0.7 ? 'g' : d.pr >= 0.5 ? 'w' : 'b';
+    const cc = d.c5 < 0.01 ? 'g' : d.c5 < 0.05 ? 'w' : 'b';
+
+    tr.innerHTML = `
+      <td>${d.risk === window.selRisk ? '<span class="pdot"></span>' : ''}${d.risk}%</td>
+      <td class="${pc}">${fmt(d.pr * 100, 1)}%</td>
+      <td>${d.avg}</td>
+      <td>${d.att}</td>
+      <td>${fmt(d.cost)} $</td>
+      <td class="${cc}">${fmt(d.c5 * 100, 1)}%</td>
+      <td>${fmt(d.be * 100, 2)}%</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+window.addEventListener('load', () => {
+  buildPills();
+  setTimeout(runSimulation, 350);
+});
+</script>
+</body>
+</html>
