@@ -12,7 +12,7 @@ const RISKS = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5];
  * @param {number} N     - Number of simulation trials (default 4000)
  * @returns {{ pr, avg, att, c5 }}
  */
-function sim(rPct, p, N = 4000) {
+function sim(rPct, p, N = 50000) {
   const r = rPct / 100;
   let pass = 0, totalTrades = 0;
 
