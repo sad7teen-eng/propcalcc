@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PropCalc — Simulateur de Challenge Prop Firm</title>
+  <meta name="description" content="Calculez la probabilité de valider un challenge prop firm en fonction de votre risque par trade.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">Prop<span>Calc</span></div>
+    <div class="tagline">
+      Trouvez votre risque optimal par trade<br>
+      Minimisez le coût &amp; le temps pour être financé
+    </div>
+  </header>
+
+  <div class="main-grid">
+
+    <!-- COLONNE GAUCHE -->
+    <div class="col">
+      <div class="panel">
+        <div class="panel-head"><div class="dot"></div><h2>Paramètres de Simulation</h2></div>
+        <div class="panel-body">
+
+          <div class="field-group">
+            <div class="field">
+              <label for="winRate">Taux de Réussite (%)</label>
+              <input type="number" id="winRate" value="40" min="1" max="99" step="1">
+            </div>
+            <div class="field">
+              <label for="rrRatio">Ratio R/R (1:X)</label>
+              <input type="number" id="rrRatio" value="2" min="0.1" max="20" step="0.1">
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="field-group full">
+            <div class="field">
+              <label>Type de Challenge</label>
+              <div class="seg">
+                <button class="on" data-phase="1">Phase Unique</button>
+                <button data-phase="2">Deux Phases</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <div class="field">
+              <label for="challengeFee">Frais ($)</label>
+              <input type="number" id="challengeFee" value="500" min="0" step="50">
+            </div>
+            <div class="field">
+              <label for="profitTarget">Objectif Profit (%)</label>
+              <input type="number" id="profitTarget" value="10" min="1" max="30" step="0.5">
+            </div>
+          </div>
+
+          <div class="field-group" id="phase2Row" style="display:none;">
+            <div class="field">
+              <label for="profitTarget2">Objectif Phase 2 (%)</label>
+              <input type="number" id="profitTarget2" value="5" min="1" max="20" step="0.5">
+            </div>
+          </div>
+
+          <div class="field-group">
+            <div class="field">
+              <label for="maxDD">Drawdown Max (%)</label>
+              <input type="number" id="maxDD" value="10" min="1" max="30" step="0.5">
+            </div>
+            <div class="field">
+              <label>Type Drawdown</label>
+              <div class="seg">
+                <button class="on" data-dd="initial">Initial</button>
+                <button data-dd="trailing">Glissant</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="field-group">
+            <div class="field">
+              <label for="accountSize">Taille du Compte ($)</label>
+              <input type="number" id="accountSize" value="100000" min="1000" step="1000">
+            </div>
+            <div class="field">
+              <label for="profitSplit">Partage Profits (%)</label>
+              <input type="number" id="profitSplit" value="80" min="1" max="100" step="1">
+            </div>
+          </div>
+
+          <button class="btn-run" id="btnRun">&#9654; Lancer la Simulation</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="chart-inner-head">
+          <div class="cih-title">Taux de Réussite vs Risque</div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chartPass" height="180"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- COLONNE DROITE -->
+    <div class="col">
+      <div class="panel">
+        <div class="panel-head"><div class="dot"></div><h2>Analyse des Résultats</h2></div>
+        <div class="panel-body">
+
+          <div class="pills-label">Risque par trade sélectionné</div>
+          <div class="pills-wrap" id="riskPills"></div>
+
+          <div class="stats-row">
+            <div class="scard">
+              <div class="scard-val a" id="statPassRate">—</div>
+              <div class="scard-lbl">Taux de Réussite</div>
+            </div>
+            <div class="scard">
+              <div class="scard-val" id="statAvgTrades">—</div>
+              <div class="scard-lbl">Trades Moyens pour Valider</div>
+            </div>
+            <div class="scard">
+              <div class="scard-val" id="statAttempts">—</div>
+              <div class="scard-lbl">Tentatives (90% de confiance)</div>
+              <div class="scard-sub" id="statAttemptsNote"></div>
+            </div>
+            <div class="scard">
+              <div class="scard-val a" id="statCost">—</div>
+              <div class="scard-lbl">Coût Estimé pour être Financé</div>
+              <div class="scard-sub" id="statCostNote"></div>
+            </div>
+          </div>
+
+          <div class="bottom-bar">
+            <div class="bbar-item">
+              <div class="bbar-val" id="statConsecFail">—</div>
+              <div class="bbar-lbl">Risque 5+ Échecs Consécutifs</div>
+            </div>
+            <div class="bbar-item right">
+              <div class="bbar-val a" id="statBreakeven">—</div>
+              <div class="bbar-lbl">Seuil de Rentabilité</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="chart-inner-head">
+          <div class="cih-title">Coût Estimé pour être Financé</div>
+          <div class="cih-sub">Budget recommandé sur la base des tentatives à 90% de confiance</div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chartCost" height="180"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TABLE PLEINE LARGEUR -->
+  <div class="table-panel">
+    <div class="panel-head">
+      <div class="dot"></div>
+      <h2>Comparaison Complète des Résultats</h2>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Risque %</th>
+          <th>Taux de Réussite</th>
+          <th>Trades Moyens</th>
+          <th>Tentatives (90%)</th>
+          <th>Coût Estimé</th>
+          <th>Risque 5+ Échecs</th>
+          <th>Seuil Rentabilité</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="js/simulation.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
